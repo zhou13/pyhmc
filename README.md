@@ -27,14 +27,18 @@ something like:
 import numpy as np
 def logprob(x, ivar):
     logp = -0.5 * np.sum(ivar * x**2)
+    return logp
+
+def logprob_grad(x, ivar):
     grad = -ivar * x
-    return logp, grad
+    return grad
 ```
 
 ```
 from pyhmc import hmc
 ivar = 1. / np.random.rand(5)
-samples = hmc(logprob, x0=np.random.randn(5), args=(ivar,), n_samples=1e4)
+samples = hmc(logprob, logprob_grad, x0=np.random.randn(5),
+              args=(ivar,), n_samples=1e4)
 ```
 
 ```
