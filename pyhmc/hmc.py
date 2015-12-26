@@ -7,23 +7,26 @@ from ._hmc import hmc_main_loop
 __all__ = ['hmc', '__version__']
 
 
-def hmc(fun, x0, n_samples=1000, args=(), display=False, n_steps=1, n_burn=0,
+def hmc(fun, fprime, x0, n_samples=1000, args=(), display=False, n_steps=1, n_burn=0,
         persistence=False, decay=0.9, epsilon=0.2, window=1,
         return_logp=False, return_diagnostics=False, random_state=None):
     """Hamiltonian Monte Carlo sampler.
 
     Uses a Hamiltonian / Hybrid Monte Carlo algorithm to sample from the
-    distribution P ~ exp(f). The Markov chain starts at the point x0. The
-    callable ``fun`` should return the log probability and gradient of the
-    log probability of the target density.
+    distribution P ~ 1 / C * exp(f). The Markov chain starts at the point x0.
+    The callable ``fun`` should return the log probability, in which the
+    division of normalization constant C is not required.  The callable
+    ``fprime`` should return the gradient of log probabily.
 
     Parameters
     ----------
     fun : callable
         A callable which takes a vector in the parameter spaces as input
         and returns the natural logarithm of the posterior probabily
-        for that position, and gradient of the posterior probability with
-        respect to the parameter vector, ``logp, grad = func(x, *args)``.
+        for that position, i.e., ``logp = fun(x, *args)``.
+    fprime : callable
+        The gradient of the logarithm of the posterior probability with respect
+        to the parameter vector, i.e., ``grad = fprime(x, *args)``.
     x0 : 1-d array
       Starting point for the sampling Markov chain.
 
@@ -132,7 +135,7 @@ def hmc(fun, x0, n_samples=1000, args=(), display=False, n_steps=1, n_burn=0,
 
     # Main loop.
     all_args = [
-        fun, x0, args, p, samples, logp,
+        fun, fprime, x0, args, p, samples, logp,
         diagn_pos, diagn_mom, diagn_acc,
         n_samples, n_burn, window,
         n_steps, display, persistence,

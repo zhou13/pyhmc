@@ -8,7 +8,7 @@ from libc.math cimport log, exp
 
 
 @cython.boundscheck(False)
-def hmc_main_loop(fun, double[::1] x, args, double[::1] p,
+def hmc_main_loop(fun, fprime, double[::1] x, args, double[::1] p,
                   double[:, ::1] samples, double[::1] logps,
                   double[:, ::1] diagn_pos, double[:, ::1] diagn_mom,
                   double[::1] diagn_acc, npy_intp opt_nsamples,
@@ -37,10 +37,8 @@ def hmc_main_loop(fun, double[::1] x, args, double[::1] p,
 
     # Evaluate starting energy.
     x = x.copy()
-    logp, grad = fun(asarray(x), *args)
+    logp = fun(asarray(x), *args)
     E = -logp
-    if len(grad) != n_params:
-        raise ValueError('fun(x, *args) must return (logp, grad)')
 
     while k < opt_nsamples:  # samples from k >= 0
         # Store starting position and momenta
@@ -94,7 +92,7 @@ def hmc_main_loop(fun, double[::1] x, args, double[::1] p,
 
                 # First half-step of leapfrog.
                 # p = p - direction*0.5*epsilon.*feval(gradf, x, varargin{:});
-                logp, grad = fun(asarray(x), *args)
+                grad = fprime(asarray(x), *args)
                 for i in range(n_params):
                     p[i] +=  direction * 0.5 * epsilon * grad[i]
                 for i in range(n_params):
@@ -104,7 +102,7 @@ def hmc_main_loop(fun, double[::1] x, args, double[::1] p,
                 # for m = 1:(abs(stps)-1):
                 for m in range(int_abs(stps)-1):
                     # p = p - direction*epsilon.*feval(gradf, x, varargin{:});
-                    logp, grad = fun(asarray(x), *args)
+                    grad = fprime(asarray(x), *args)
                     for i in range(n_params):
                         p[i] +=  direction * 0.5 * epsilon * grad[i]
                     for i in range(n_params):
@@ -112,7 +110,8 @@ def hmc_main_loop(fun, double[::1] x, args, double[::1] p,
 
                 # Final half-step of leapfrog.
                 # p = p - direction*0.5*epsilon.*feval(gradf, x, varargin{:});
-                logp, grad = fun(asarray(x), *args)
+                logp = fun(asarray(x), *args)
+                grad = fprime(asarray(x), *args)
                 E = -logp
                 for i in range(n_params):
                     p[i] += direction * 0.5 * epsilon * grad[i]
